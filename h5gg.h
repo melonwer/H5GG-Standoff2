@@ -463,8 +463,7 @@ JSExportAs(makeTweak, -(NSString*)makeTweak:(NSString*)icon with:(NSString*)html
 
     if(self.firstSearchDone && self.engine->getResultsCount()==0) {
         NSLog(@"[searchNumber] ⚠ Previous search had 0 results, clearing...");
-        self.engine->JJClearResults();
-        self.firstSearchDone = FALSE;
+        [self clearResults];
     }
 
     NSLog(@"[searchNumber] Initiating memory scan...");

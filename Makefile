@@ -1,6 +1,6 @@
 ARCHS = arm64
 
-TARGET = iphone:13.7:11.4
+TARGET = iphone:16.5:11.4
 
 THEOS_DEVICE_IP = iphoneX.local
 
@@ -15,7 +15,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = H5GG
 
-H5GG_FILES = Tweak.mm ldid-master/ldid.cpp ldid-master/lookup2.c
+H5GG_FILES = Tweak.mm HUDSpawner.mm HUDMain.mm ldid-master/ldid.cpp ldid-master/lookup2.c
 H5GG_CFLAGS = -fobjc-arc -fvisibility=hidden 
 H5GG_CCFLAGS = -fobjc-arc -fvisibility=hidden -std=c++11
 H5GG_LOGOS_DEFAULT_GENERATOR = internal

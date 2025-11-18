@@ -1,7 +1,7 @@
 {
     Filter =     {
         Bundles =         (
-            "com.apple.springboard","com.shadow.h5ggapp"
+            "com.apple.springboard","com.apple.h5ggapp"
         );
     };
 }

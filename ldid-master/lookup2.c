@@ -96,10 +96,7 @@ acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------
 */
 
-ub4 hash( k, length, initval)
-register ub1 *k;        /* the key */
-register ub4  length;   /* the length of the key */
-register ub4  initval;    /* the previous hash, or an arbitrary value */
+ub4 hash(register ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -153,10 +150,7 @@ register ub4  initval;    /* the previous hash, or an arbitrary value */
  -- that the length be the number of ub4's in the key
 --------------------------------------------------------------------
 */
-ub4 hash2( k, length, initval)
-register ub4 *k;        /* the key */
-register ub4  length;   /* the length of the key, in ub4s */
-register ub4  initval;  /* the previous hash, or an arbitrary value */
+ub4 hash2(register ub4 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 
@@ -199,10 +193,7 @@ register ub4  initval;  /* the previous hash, or an arbitrary value */
 --------------------------------------------------------------------
 */
 
-ub4 hash3( k, length, initval)
-register ub1 *k;        /* the key */
-register ub4  length;   /* the length of the key */
-register ub4  initval;  /* the previous hash, or an arbitrary value */
+ub4 hash3(register ub1 *k, register ub4 length, register ub4 initval)
 {
    register ub4 a,b,c,len;
 

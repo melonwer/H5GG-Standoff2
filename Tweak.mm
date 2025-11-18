@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 
 #include "Localized.h"
+#import "HUDMain.h"
 
 //忽略一些警告
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
@@ -117,14 +118,23 @@ void SetGlobalView(char* dylib, UInt64 GVDataOffset)
 {
     NSLog(@"SetGlobalView=%x, %s", GVDataOffset, dylib);
     
+    NSLog(@"\n[SetGlobalView] ══════════════════════════════════════════════════");
+    NSLog(@"[SetGlobalView] Looking up SpringBoard process...");
     pid_t sbpid = pid_for_name("SpringBoard");
-    NSLog(@"SetGlobalView=sbpid=%d", sbpid);
-    if(!sbpid) return;
-    
-    task_port_t sbtask=0;
-    kern_return_t ret = task_for_pid(mach_task_self(), sbpid, &sbtask);
-    NSLog(@"SetGlobalView=task_for_pid=%d %p %d %s!", sbpid, ret, sbtask, mach_error_string(ret));
-    if(ret!=KERN_SUCCESS) return;
+    NSLog(@"[SetGlobalView] SpringBoard PID: %d", sbpid);
+    if(!sbpid) {
+        NSLog(@"[SetGlobalView] ✗ ERROR: SpringBoard not found!");
+        return;
+    }
+
+    NSLog(@"[SetGlobalView] Getting task port for SpringBoard via workaround...");
+    task_port_t sbtask = task_for_pid_workaround(sbpid);
+    NSLog(@"[SetGlobalView] SpringBoard task port: %u", sbtask);
+    if(sbtask == MACH_PORT_NULL) {
+        NSLog(@"[SetGlobalView] ✗ ERROR: Failed to get SpringBoard task port!");
+        return;
+    }
+    NSLog(@"[SetGlobalView] ✓ Successfully obtained SpringBoard task port for GlobalView setup");
     
     NSArray* modules = getRangesList2(sbpid, sbtask, [NSString stringWithUTF8String:basename(dylib)]);
     NSLog(@"SetGlobalView=modules=%@", modules);
@@ -585,6 +595,28 @@ int memorystatus_control(uint32_t command, pid_t pid, uint32_t flags, void *buff
 //初始化函数, 插件加载后系统自动调用
 static void __attribute__((constructor)) _init_()
 {
+    // Check if we should run as HUD root helper process
+    // The HUD is detected by the -hud command line argument
+    NSArray *arguments = [[NSProcessInfo processInfo] arguments];
+    BOOL should_run_as_hud = NO;
+
+    for (NSString *arg in arguments) {
+        if ([arg isEqualToString:@"-hud"]) {
+            should_run_as_hud = YES;
+            break;
+        }
+    }
+
+    if (should_run_as_hud) {
+        NSLog(@"\n╔═════════════════════════════════════════════════════════════════╗");
+        NSLog(@"║           H5GG: Detected -hud flag, entering HUD mode          ║");
+        NSLog(@"╚═════════════════════════════════════════════════════════════════╝\n");
+
+        HUD_MainServerLoop();  // This never returns - HUD runs forever
+        exit(0);  // Safety exit in case HUD loop returns
+    }
+
+    // Normal H5GG initialization (main app, not HUD)
     struct dl_info di={0};
     dladdr((void*)_init_, &di);
 
@@ -599,9 +631,21 @@ static void __attribute__((constructor)) _init_()
     //判断是APP程序加载插件(排除后台程序和APP扩展)
     if(![app_path hasSuffix:@".app"]) return;
     
-    task_port_t task=0;
-    if(task_for_pid(mach_task_self(), getpid(), &task)==KERN_SUCCESS)
+    NSLog(@"\n[_init_] ══════════════════════════════════════════════════");
+    NSLog(@"[_init_] Checking if app has permissions for standalone mode...");
+    NSLog(@"[_init_] Attempting to get task port for current process (PID: %d)...", getpid());
+    task_port_t self_task = task_for_pid_workaround(getpid());
+    if (self_task != MACH_PORT_NULL) {
+        NSLog(@"[_init_] ✓✓✓ SUCCESS: Got self task port (%u), enabling STANDALONE MODE ✓✓✓", self_task);
         g_standalone_runmode = true;
+        // Deallocate the port since we only used it for a check
+        NSLog(@"[_init_] Deallocating self task port for cleanup...");
+        mach_port_deallocate(mach_task_self(), self_task);
+        NSLog(@"[_init_] ✓ Self task port deallocated, H5GG ready for memory operations");
+    } else {
+        NSLog(@"[_init_] ✗ Could not get self task port, running in COMMON APP MODE (cross-process)");
+    }
+    NSLog(@"[_init_] ══════════════════════════════════════════════════\n");
 
     
     if([app_package isEqualToString:@"com.test.h5gg"])

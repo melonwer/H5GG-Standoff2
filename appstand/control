@@ -1,4 +1,4 @@
-Package: com.shadow.h5ggapp
+Package: com.apple.h5ggapp
 Name: H5GG
 Depends: 
 Architecture: iphoneos-arm

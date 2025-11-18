@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- CommCenter Entitlements -->
 	<key>com.apple.CommCenter.fine-grained</key>
 	<array>
 		<string>spi</string>
@@ -13,29 +14,75 @@
 		<string>data-allowed-write</string>
 		<string>preferences-write</string>
 	</array>
+
+	<!-- Audio & Media -->
 	<key>com.apple.coreaudio.allow-amr-decode</key>
+	<true/>
+	<key>com.apple.coreaudio.allow-opus-codec</key>
+	<true/>
+	<key>com.apple.coreaudio.register-internal-aus</key>
 	<true/>
 	<key>com.apple.coremedia.allow-protected-content-playback</key>
 	<true/>
+	<key>com.apple.private.coreaudio.viewInterruptorName.allow</key>
+	<true/>
+	<key>com.apple.private.avfoundation.capture.nonstandard-client.allow</key>
+	<true/>
+
+	<!-- Accessibility -->
+	<key>com.apple.AXMediaUtilitiesService-access</key>
+	<true/>
+	<key>com.apple.accessibility.api</key>
+	<true/>
+	<key>com.apple.accessibility.physicalinteraction.client</key>
+	<true/>
+	<key>com.apple.accessibility.zoom.client</key>
+	<true/>
+	<key>com.apple.assistivetouch.daemon</key>
+	<true/>
+	<key>com.apple.private.acccessibility.motionTrackingClient</key>
+	<true/>
+
+	<!-- HID Management -->
+	<key>com.apple.hid.manager.user-access-device</key>
+	<true/>
+	<key>com.apple.hid.manager.user-access-keyboard</key>
+	<true/>
+	<key>com.apple.private.hid.client.event-dispatch</key>
+	<true/>
+	<key>com.apple.private.hid.client.event-filter</key>
+	<true/>
+	<key>com.apple.private.hid.client.event-monitor</key>
+	<true/>
+	<key>com.apple.private.hid.client.service-protected</key>
+	<true/>
+	<key>com.apple.private.hid.manager.client</key>
+	<true/>
+
+	<!-- QuartzCore & Display -->
+	<key>com.apple.QuartzCore.displayable-context</key>
+	<true/>
+	<key>com.apple.QuartzCore.secure-mode</key>
+	<true/>
+	<key>com.apple.pointerui.persistentlyHidePointer</key>
+	<true/>
+
+	<!-- Backboard & UI -->
+	<key>com.apple.backboard.client</key>
+	<true/>
+	<key>com.apple.backboardd.global-pointer-event-routing</key>
+	<true/>
+	<key>com.apple.backboardd.launchapplications</key>
+	<true/>
+	<key>com.apple.DragUI.accessibility</key>
+	<true/>
+
+	<!-- Bluetooth -->
+	<key>com.apple.bluetooth.system</key>
+	<true/>
+
+	<!-- Configuration & Mobile Install -->
 	<key>com.apple.managedconfiguration.profiled-access</key>
-	<true/>
-	<key>com.apple.private.security.no-container</key>
-	<true/>
-	<key>com.apple.frontboard.launchapplications</key>
-	<true/>
-	<key>com.apple.frontboard.shutdown</key>
-	<true/>
-	<key>com.apple.springboard.launchapplications</key>
-	<true/>
-	<key>com.apple.springboard.opensensitiveurl</key>
-	<true/>
-	<key>com.apple.lsapplicationworkspace.rebuildappdatabases</key>
-	<true/>
-	<key>com.apple.private.MobileContainerManager.allowed</key>
-	<true/>
-	<key>com.apple.private.MobileGestalt.AllowedProtectedKeys</key>
-	<true/>
-	<key>com.apple.springboard.debugapplications</key>
 	<true/>
 	<key>com.apple.private.mobileinstall.allowedSPI</key>
 	<array>
@@ -50,11 +97,82 @@
 		<string>CopyDiskUsageForLaunchServices</string>
 		<string>InstallLocalProvisioned</string>
 	</array>
+
+	<!-- Security & Sandbox -->
+	<key>com.apple.private.security.no-container</key>
+	<true/>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+
+	<!-- Springboard & Frontboard -->
+	<key>com.apple.frontboard.launchapplications</key>
+	<true/>
+	<key>com.apple.frontboard.shutdown</key>
+	<true/>
+	<key>com.apple.frontboard.debugapplications</key>
+	<true/>
+	<key>com.apple.springboard.launchapplications</key>
+	<true/>
+	<key>com.apple.springboard.opensensitiveurl</key>
+	<true/>
+	<key>com.apple.springboard.debugapplications</key>
+	<true/>
+	<key>com.apple.springboard.CFUserNotification</key>
+	<true/>
+	<key>com.apple.springboard.accessibility-window-hosting</key>
+	<true/>
+	<key>com.apple.springboard.activateassistant</key>
+	<true/>
+	<key>com.apple.springboard.appbackgroundstyle</key>
+	<true/>
+	<key>com.apple.springboard-ui.client</key>
+	<true/>
+
+	<!-- App Management -->
+	<key>com.apple.lsapplicationworkspace.rebuildappdatabases</key>
+	<true/>
+	<key>com.apple.private.MobileContainerManager.allowed</key>
+	<true/>
+
+	<!-- Gesture & Mobile Gestalt -->
+	<key>com.apple.private.MobileGestalt.AllowedProtectedKeys</key>
+	<true/>
+
+	<!-- Carousel -->
+	<key>com.apple.carousel.backlightaccess</key>
+	<true/>
+
+	<!-- Diagnostics & System -->
+	<key>com.apple.diagnosticd.diagnostic</key>
+	<true/>
+	<key>com.apple.private.sysdiagnose</key>
+	<true/>
+	<key>com.apple.system.diagnostics.iokit-properties</key>
+	<true/>
+	<key>com.apple.private.kernel.jetsam</key>
+	<true/>
+
+	<!-- IOKit User Client -->
 	<key>com.apple.security.iokit-user-client-class</key>
 	<array>
 		<string>AGXDeviceUserClient</string>
 		<string>IOHDIXControllerUserClient</string>
 		<string>IOSurfaceRootUserClient</string>
+	</array>
+
+	<!-- iCloud & Keychain -->
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>ch.xxtou.hudapp</string>
+	<key>com.apple.private.ubiquity-additional-kvstore-identifiers</key>
+	<array>
+		<string>com.apple.AssistiveTouch</string>
+		<string>com.apple.Accessibility.SwitchControl</string>
+		<string>com.apple.Accessibility</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+		<string>CloudKit</string>
 	</array>
 	<key>keychain-access-groups</key>
 	<array>
@@ -62,21 +180,133 @@
 		<string>com.apple.identities</string>
 		<string>com.apple.mobilesafari</string>
 	</array>
-	<key>platform-application</key>
+
+	<!-- Authentication & Credentials -->
+	<key>com.apple.private.CoreAuthentication.SPI</key>
 	<true/>
-	<key>com.apple.developer.icloud-services</key>
+	<key>com.apple.private.LocalAuthentication.Storage</key>
+	<true/>
+	<key>com.apple.private.applecredentialmanager.allow</key>
+	<true/>
+	<key>com.apple.private.appleaccount.app-hidden-from-icloud-settings</key>
+	<true/>
+
+	<!-- Assets -->
+	<key>com.apple.private.assets.accessible-asset-types</key>
 	<array>
-		<string>CloudDocuments</string>
-		<string>CloudKit</string>
+		<string>com.apple.MobileAsset.VoiceServices.CustomVoice</string>
+		<string>com.apple.MobileAsset.VoiceServicesVocalizerVoice</string>
+		<string>com.apple.MobileAsset.VoiceServices.GryphonVoice</string>
+		<string>com.apple.MobileAsset.MacinTalkVoiceAssets</string>
+		<string>com.apple.MobileAsset.VoiceServices.CombinedVocalizerVoices</string>
 	</array>
-	<key>run-unsigned-code</key>
+
+	<!-- IDS Messaging -->
+	<key>com.apple.private.ids.messaging</key>
+	<array>
+		<string>com.apple.private.alloy.accessibility.switchcontrol</string>
+	</array>
+	<key>com.apple.private.ids.messaging.urgent-priority</key>
+	<array>
+		<string>com.apple.private.alloy.accessibility.switchcontrol</string>
+	</array>
+
+	<!-- Mach & Task Ports (CRITICAL FOR PRIVILEGE ESCALATION) -->
+	<key>com.apple.private.host-special-port</key>
 	<true/>
-	<key>get-task-allow</key>
+	<key>com.apple.private.mach.privileged.host</key>
 	<true/>
+	<key>com.apple.private.mach.task.get_task_special_port</key>
+	<true/>
+	<key>com.apple.host-processor-set-privs</key>
+	<true/>
+	<key>com.apple.system-task-ports</key>
+	<true/>
+
+	<!-- XPC & IPC -->
+	<key>com.apple.private.xpc.launchd</key>
+	<true/>
+
+	<!-- Persona Management (for privilege escalation) -->
+	<key>com.apple.private.persona-mgmt</key>
+	<true/>
+
+	<!-- Task & Process -->
 	<key>task_for_pid-allow</key>
+	<true/>
+	<key>com.apple.private.task_for_pid-allow</key>
 	<true/>
 	<key>proc_info-allow</key>
 	<true/>
+
+	<!-- Code Execution & Development -->
+	<key>get-task-allow</key>
+	<true/>
+	<key>run-unsigned-code</key>
+	<true/>
+	<key>file-read-data</key>
+	<true/>
+
+	<!-- Mach Exceptions -->
+	<key>com.apple.security.exception.mach-lookup.global-name</key>
+	<array>
+		<string>com.apple.accessibility.motiontrackingd</string>
+		<string>com.apple.accessibility.AXSpringBoardServer</string>
+		<string>com.apple.accessibility.AXPineBoardServer</string>
+		<string>com.apple.accessibility.AXCarouselServer</string>
+		<string>AXPerformanceTestReportingServer</string>
+		<string>com.apple.telephonyutilities.callservicesdaemon.callstatecontroller</string>
+		<string>com.apple.AXMediaUtilitiesService</string>
+		<string>com.apple.audio.hapticd</string>
+		<string>AccessibilityDebuggerServices</string>
+		<string>com.apple.sysdiagnose.service.xpc</string>
+		<string>com.apple.TextInput</string>
+		<string>com.apple.SBUserNotification</string>
+		<string>com.apple.siri.activation.service</string>
+		<string>com.apple.commandandcontrol</string>
+		<string>com.apple.sharing.accessibility</string>
+		<string>com.apple.TextInput.accessibility</string>
+		<string>com.apple.appleneuralengine</string>
+		<string>com.apple.fontservicesd</string>
+		<string>com.apple.PointerUI.pointeruid.service</string>
+	</array>
+	<key>com.apple.security.exception.mach-register.global-name</key>
+	<array>
+		<string>ch.xxtou.hudapp.gsEvents</string>
+	</array>
+	<key>com.apple.security.exception.mach-lookup.local-name</key>
+	<array>
+		<string>com.apple.AXMediaUtilitiesService</string>
+	</array>
+	<key>com.apple.security.exception.mach-register.local-name</key>
+	<array>
+		<string>ch.xxtou.hudapp</string>
+	</array>
+
+	<!-- Shared Preferences -->
+	<key>com.apple.security.exception.shared-preference.read-only</key>
+	<array>
+		<string>com.apple.purplebuddy</string>
+		<string>com.apple.uikitservices.userInterfaceStyleMode</string>
+	</array>
+	<key>com.apple.security.exception.shared-preference.read-write</key>
+	<array>
+		<string>com.apple.assistant.logging</string>
+	</array>
+
+	<!-- Platform & Preferences -->
+	<key>platform-application</key>
+	<true/>
+	<key>user-preference-read</key>
+	<true/>
+	<key>user-preference-write</key>
+	<true/>
+
+	<!-- Idle Timer -->
+	<key>com.apple.idle-timer-services</key>
+	<true/>
+
+	<!-- App Identifier -->
 	<key>application-identifier</key>
 	<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
 </dict>

@@ -195,26 +195,60 @@ Scope<Function_> _scope(const Function_ &function) {
 #define _scope(function) \
     _scope_(__COUNTER__, function)
 
+#ifndef CPU_ARCH_MASK
 #define CPU_ARCH_MASK  uint32_t(0xff000000)
+#endif
+#ifndef CPU_ARCH_ABI64
 #define CPU_ARCH_ABI64 uint32_t(0x01000000)
+#endif
 
+#ifndef CPU_TYPE_ANY
 #define CPU_TYPE_ANY     uint32_t(-1)
+#endif
+#ifndef CPU_TYPE_VAX
 #define CPU_TYPE_VAX     uint32_t( 1)
+#endif
+#ifndef CPU_TYPE_MC680x0
 #define CPU_TYPE_MC680x0 uint32_t( 6)
+#endif
+#ifndef CPU_TYPE_X86
 #define CPU_TYPE_X86     uint32_t( 7)
+#endif
+#ifndef CPU_TYPE_MC98000
 #define CPU_TYPE_MC98000 uint32_t(10)
+#endif
+#ifndef CPU_TYPE_HPPA
 #define CPU_TYPE_HPPA    uint32_t(11)
+#endif
+#ifndef CPU_TYPE_ARM
 #define CPU_TYPE_ARM     uint32_t(12)
+#endif
+#ifndef CPU_TYPE_MC88000
 #define CPU_TYPE_MC88000 uint32_t(13)
+#endif
+#ifndef CPU_TYPE_SPARC
 #define CPU_TYPE_SPARC   uint32_t(14)
+#endif
+#ifndef CPU_TYPE_I860
 #define CPU_TYPE_I860    uint32_t(15)
+#endif
+#ifndef CPU_TYPE_POWERPC
 #define CPU_TYPE_POWERPC uint32_t(18)
+#endif
 
+#ifndef CPU_TYPE_I386
 #define CPU_TYPE_I386 CPU_TYPE_X86
+#endif
 
+#ifndef CPU_TYPE_ARM64
 #define CPU_TYPE_ARM64     (CPU_ARCH_ABI64 | CPU_TYPE_ARM)
+#endif
+#ifndef CPU_TYPE_POWERPC64
 #define CPU_TYPE_POWERPC64 (CPU_ARCH_ABI64 | CPU_TYPE_POWERPC)
+#endif
+#ifndef CPU_TYPE_X86_64
 #define CPU_TYPE_X86_64    (CPU_ARCH_ABI64 | CPU_TYPE_X86)
+#endif
 
 struct fat_header {
     uint32_t magic;
@@ -3337,7 +3371,7 @@ int ldid_main(int argc, char *argv[]) {
     if (files.empty())
         return 0;
 
-    size_t filei(0), filee(0);
+    size_t filee(0);
     _foreach (file, files) try {
         std::string path(file);
 
@@ -3581,10 +3615,8 @@ int ldid_main(int argc, char *argv[]) {
             }
         }
 
-        ++filei;
     } catch (const char *) {
         ++filee;
-        ++filei;
     }
 
     return filee;

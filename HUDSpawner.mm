@@ -299,106 +299,112 @@ BOOL HUDSpawner_Stop(void) {
 task_port_t HUDSpawner_GetTaskPort(pid_t targetPid) {
     NSLog(@"[HUDSpawner_GetTaskPort] Requesting task port for PID %d", targetPid);
 
-    // Check cache first
+    // Check cache
     pthread_mutex_lock(&g_cache_mutex);
     if (g_port_cache) {
         NSNumber *pidKey = @(targetPid);
         NSNumber *cachedPort = g_port_cache[pidKey];
-
         if (cachedPort) {
             task_port_t port = (task_port_t)[cachedPort unsignedIntValue];
-
-            // Validate cached port still works
-            pid_t check_pid;
-            if (pid_for_task(port, &check_pid) == KERN_SUCCESS && check_pid == targetPid) {
-                NSLog(@"[HUDSpawner_GetTaskPort] ✓ Using cached task port for PID %d", targetPid);
+            // Verify port is still valid in OUR namespace
+            mach_port_type_t type;
+            if (mach_port_type(mach_task_self(), port, &type) == KERN_SUCCESS) {
+                NSLog(@"[HUDSpawner_GetTaskPort] ✓ Using cached task port %d", port);
                 pthread_mutex_unlock(&g_cache_mutex);
                 return port;
-            } else {
-                NSLog(@"[HUDSpawner_GetTaskPort] Cached port for PID %d is stale, refreshing", targetPid);
-                [g_port_cache removeObjectForKey:pidKey];
             }
+            [g_port_cache removeObjectForKey:pidKey];
         }
     }
     pthread_mutex_unlock(&g_cache_mutex);
 
-    // Ensure HUD is running
     if (!HUDSpawner_IsRunning()) {
-        NSLog(@"[HUDSpawner_GetTaskPort] HUD not running, starting...");
-        if (!HUDSpawner_Start()) {
-            NSLog(@"[HUDSpawner_GetTaskPort] ✗ Failed to start HUD");
-            return MACH_PORT_NULL;
-        }
+        if (!HUDSpawner_Start()) return MACH_PORT_NULL;
     }
 
     HUDSpawner_EnsureDirectory();
 
-    // Build request - CRITICAL: include our PID so HUD can inject port into our namespace
     HUD_Request req;
     req.targetPid = targetPid;
-    req.appPid = getpid();  // Tell HUD our PID for port namespace injection
+    req.appPid = getpid();
 
-    NSLog(@"[HUDSpawner_GetTaskPort] Building request: targetPid=%d, appPid=%d",
-          req.targetPid, req.appPid);
+    // Clean up old response
+    unlink(HUD_RESPONSE_FILE);
 
-    // Write request to file
     int fd = open(HUD_REQUEST_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-    if (fd < 0) {
-        NSLog(@"[HUDSpawner_GetTaskPort] ✗ Failed to open request file: %s", strerror(errno));
-        return MACH_PORT_NULL;
-    }
-
-    if (write(fd, &req, sizeof(req)) != sizeof(req)) {
-        NSLog(@"[HUDSpawner_GetTaskPort] ✗ Failed to write request");
-        close(fd);
-        return MACH_PORT_NULL;
-    }
+    if (fd < 0) return MACH_PORT_NULL;
+    write(fd, &req, sizeof(req));
     close(fd);
 
-    NSLog(@"[HUDSpawner_GetTaskPort] Sent request to HUD, waiting for response...");
+    // --- FIX: RETRY LOOP ---
+    // Don't just notify once. The HUD might still be starting up.
+    // We loop for 5 seconds, checking for the file AND re-sending the notification.
 
-    // Signal HUD to process request
-    notify_post(HUD_NOTIFY_REQUEST);
+    BOOL responseReceived = NO;
+    for (int i = 0; i < 25; i++) { // 25 * 200ms = 5 seconds
 
-    // Wait for response (timeout: 5 seconds with polling)
-    for (int i = 0; i < 50; i++) {
+        // 1. Signal HUD (Repeat this!)
+        notify_post(HUD_NOTIFY_REQUEST);
+
+        // 2. Wait a bit
+        usleep(200000); // 200ms
+
+        // 3. Check for response
         struct stat st;
         if (stat(HUD_RESPONSE_FILE, &st) == 0 && st.st_size > 0) {
-            NSLog(@"[HUDSpawner_GetTaskPort] ✓ Response file ready");
+            responseReceived = YES;
             break;
         }
-        usleep(100000);  // 100ms
     }
 
-    // Read response
-    fd = open(HUD_RESPONSE_FILE, O_RDONLY);
-    if (fd < 0) {
-        NSLog(@"[HUDSpawner_GetTaskPort] ✗ Failed to open response file: %s", strerror(errno));
+    if (!responseReceived) {
+        NSLog(@"[HUDSpawner] ✗ Timeout waiting for HUD response");
         return MACH_PORT_NULL;
     }
 
+    fd = open(HUD_RESPONSE_FILE, O_RDONLY);
+    if (fd < 0) return MACH_PORT_NULL;
     HUD_Response resp = {0};
-    ssize_t bytes_read = read(fd, &resp, sizeof(resp));
+    read(fd, &resp, sizeof(resp));
     close(fd);
 
-    if (bytes_read != sizeof(resp)) {
-        NSLog(@"[HUDSpawner_GetTaskPort] ✗ Failed to read response (got %zd bytes)", bytes_read);
-        return MACH_PORT_NULL;
-    }
-
     if (!resp.success) {
-        NSLog(@"[HUDSpawner_GetTaskPort] ✗ HUD failed to acquire task port for PID %d", targetPid);
+        NSLog(@"[HUDSpawner] ✗ HUD reported failure");
         return MACH_PORT_NULL;
     }
 
-    task_port_t port = resp.taskPort;
-    NSLog(@"[HUDSpawner_GetTaskPort] ✓ Got task port from HUD: %u", port);
+    // --- RETRIEVE STASHED PORT ---
+    task_port_t port = MACH_PORT_NULL;
+    mach_port_array_t ports = NULL;
+    mach_msg_type_number_t portsCount = 0;
 
-    // Cache the port
-    pthread_mutex_lock(&g_cache_mutex);
-    if (!g_port_cache) {
-        g_port_cache = [NSMutableDictionary new];
+    // Lookup the ports the HUD registered for us
+    kern_return_t kr = mach_ports_lookup(mach_task_self(), &ports, &portsCount);
+
+    if (kr == KERN_SUCCESS && portsCount > 0) {
+        port = ports[0]; // The HUD put the target task at index 0
+        NSLog(@"[HUDSpawner] ✓ Retrieved stashed port: %u", port);
+
+        // Optional: Clear the stash to be clean (not strictly necessary)
+        // mach_ports_register(mach_task_self(), NULL, 0);
+
+        // Free the array memory (not the ports themselves)
+        vm_deallocate(mach_task_self(), (vm_address_t)ports, portsCount * sizeof(mach_port_t));
+    } else {
+        NSLog(@"[HUDSpawner] ✗ Failed to lookup stashed ports: 0x%x (Count: %d)", kr, portsCount);
+        return MACH_PORT_NULL;
     }
+
+    // Validation
+    mach_port_type_t type = 0;
+    kr = mach_port_type(mach_task_self(), port, &type);
+    if (kr != KERN_SUCCESS) {
+        NSLog(@"[HUDSpawner] ✗ CRITICAL: Port %u is invalid (0x%x)", port, kr);
+        return MACH_PORT_NULL;
+    }
+
+    pthread_mutex_lock(&g_cache_mutex);
+    if (!g_port_cache) g_port_cache = [NSMutableDictionary new];
     g_port_cache[@(targetPid)] = @(port);
     pthread_mutex_unlock(&g_cache_mutex);
 
