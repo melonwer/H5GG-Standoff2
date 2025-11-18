@@ -50,11 +50,12 @@ extern "C" int posix_spawnattr_set_persona_gid_np(const posix_spawnattr_t* __res
 // IPC Protocol structures
 typedef struct {
     pid_t targetPid;  // PID to acquire task port for
+    pid_t appPid;     // Our PID (so HUD can inject port into our namespace)
 } HUD_Request;
 
 typedef struct {
     uint32_t success;  // 1 if successful, 0 if failed
-    task_port_t taskPort;  // The acquired task port
+    task_port_t taskPort;  // The task port (injected into our namespace)
 } HUD_Response;
 
 // Global state
@@ -332,9 +333,13 @@ task_port_t HUDSpawner_GetTaskPort(pid_t targetPid) {
 
     HUDSpawner_EnsureDirectory();
 
-    // Build request
+    // Build request - CRITICAL: include our PID so HUD can inject port into our namespace
     HUD_Request req;
     req.targetPid = targetPid;
+    req.appPid = getpid();  // Tell HUD our PID for port namespace injection
+
+    NSLog(@"[HUDSpawner_GetTaskPort] Building request: targetPid=%d, appPid=%d",
+          req.targetPid, req.appPid);
 
     // Write request to file
     int fd = open(HUD_REQUEST_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0666);
