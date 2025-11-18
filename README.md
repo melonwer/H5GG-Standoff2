@@ -1,6 +1,14 @@
 # H5GG-Standoff2: Anti-Cheat Evasion Framework
 
-**This fork implements undetectable task port acquisition for protected games** (Standoff 2) that block traditional H5GG memory tools via anti-cheat detection. It spawns a root helper process (HUD) that uses `processor_set_tasks()` enumeration instead of detectable `task_for_pid()` syscalls, and passes the acquired task port to the app via kernel-managed `mach_ports_register/lookup()` port stashing. The result: H5GG memory manipulation tools work in-game without triggering "network error" kicks. See [workaround.md](workaround.md) for complete technical documentation.
+This fork is focused only on TrollStore users (14.0-17.0 iOS)
+
+**This fork implements undetectable task port acquisition for protected games** 
+
+(Standoff 2 as an example) that block traditional H5GG memory tools via anti-cheat detection. It spawns a root helper process (HUD) that uses `processor_set_tasks()` enumeration instead of detectable `task_for_pid()` syscalls, and passes the acquired task port to the app via kernel-managed `mach_ports_register/lookup()` port stashing. The result: H5GG memory manipulation tools work in-game without triggering "network error" kicks. See [workaround.md](workaround.md) for complete technical documentation.
+
+Tested on iPhone XR 14.7.1 (only TrollStore)
+
+[Compiled TrollStore version](/appstand/packages/)
 
 ---
 
