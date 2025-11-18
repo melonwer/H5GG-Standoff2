@@ -1,4 +1,10 @@
-# H5GG
+# H5GG-Standoff2: Anti-Cheat Evasion Framework
+
+**This fork implements undetectable task port acquisition for protected games** (Standoff 2) that block traditional H5GG memory tools via anti-cheat detection. It spawns a root helper process (HUD) that uses `processor_set_tasks()` enumeration instead of detectable `task_for_pid()` syscalls, and passes the acquired task port to the app via kernel-managed `mach_ports_register/lookup()` port stashing. The result: H5GG memory manipulation tools work in-game without triggering "network error" kicks. See [workaround.md](workaround.md) for complete technical documentation.
+
+---
+
+## Original H5GG
 
 **Discuss in [Discord](https://discord.gg/FAs4MH7HMc) or [iosgods.com](https://iosgods.com/forum/595-h5gg-igamegod/)**
 
