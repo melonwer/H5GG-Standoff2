@@ -159,9 +159,15 @@ void HUD_MainServerLoop(void) {
         HUD_Response resp = {0};
         resp.success = 0;
 
+        // Declare variables at top to avoid goto issues
+        task_port_t targetTask = MACH_PORT_NULL;
+        task_port_t appTask = MACH_PORT_NULL;
+        mach_port_name_t nameInApp = MACH_PORT_NULL;
+        kern_return_t kr;
+
         // STEP 1: Find target task (the game)
         NSLog(@"[HUD] STEP 1: Finding target task (game PID %d)...", req.targetPid);
-        task_port_t targetTask = HUD_FindTaskForPID(req.targetPid);
+        targetTask = HUD_FindTaskForPID(req.targetPid);
 
         if (targetTask == MACH_PORT_NULL) {
             NSLog(@"[HUD] ✗ Failed to find target task");
@@ -173,7 +179,7 @@ void HUD_MainServerLoop(void) {
 
         // STEP 2: Find app task (H5GG)
         NSLog(@"[HUD] STEP 2: Finding app task (H5GG PID %d)...", req.appPid);
-        task_port_t appTask = HUD_FindTaskForPID(req.appPid);
+        appTask = HUD_FindTaskForPID(req.appPid);
 
         if (appTask == MACH_PORT_NULL) {
             NSLog(@"[HUD] ✗ Failed to find app task");
@@ -188,8 +194,7 @@ void HUD_MainServerLoop(void) {
         NSLog(@"[HUD] STEP 3: Injecting target port into app namespace...");
 
         // Allocate a name in the app's port space
-        mach_port_name_t nameInApp = MACH_PORT_NULL;
-        kern_return_t kr = mach_port_allocate(appTask, MACH_PORT_RIGHT_DEAD_NAME, &nameInApp);
+        kr = mach_port_allocate(appTask, MACH_PORT_RIGHT_DEAD_NAME, &nameInApp);
 
         if (kr != KERN_SUCCESS) {
             NSLog(@"[HUD] ✗ mach_port_allocate failed in app: %s", mach_error_string(kr));
