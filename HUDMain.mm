@@ -6,7 +6,6 @@
 #import <fcntl.h>
 #import <unistd.h>
 #import <string.h>
-#import <vm/vm_map.h>
 
 /**
  * HUDMain.mm
