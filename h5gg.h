@@ -126,26 +126,47 @@ JSExportAs(makeTweak, -(NSString*)makeTweak:(NSString*)icon with:(NSString*)html
 }
 
 -(BOOL)setTargetProc:(pid_t)pid {
-    
-    if(pid==self.targetpid && self.targetport!=MACH_PORT_NULL)
-        return YES;
-    
-    if(self.targetport!=MACH_PORT_NULL && self.targetport!=mach_task_self())
-        mach_port_deallocate(mach_task_self(), self.targetport);
-    
-    self.targetpid = 0;
-    self.targetport = MACH_PORT_NULL;
-    [self clearResults];
-    
-    task_port_t _target_task=0;
-    kern_return_t ret = task_for_pid(mach_task_self(), pid, &_target_task);
-    NSLog(@"task_for_pid=%d %p %d %s!", pid, ret, _target_task, mach_error_string(ret));
-    if(ret==KERN_SUCCESS) {
-        self.targetpid = pid;
-        self.targetport = _target_task;
+    NSLog(@"\n[h5gg.setTargetProc] ════════════════════════════════════════════════");
+    NSLog(@"[h5gg.setTargetProc] JavaScript called: h5gg.setTargetProc(%d)", pid);
+
+    // Check if already targeting this process
+    if(pid==self.targetpid && self.targetport!=MACH_PORT_NULL) {
+        NSLog(@"[h5gg.setTargetProc] ✓ Already targeting PID %d (cached), returning YES", pid);
+        NSLog(@"[h5gg.setTargetProc] ════════════════════════════════════════════════\n");
         return YES;
     }
-    
+
+    NSLog(@"[h5gg.setTargetProc] New target process requested");
+
+    // Clean up old target
+    if(self.targetport!=MACH_PORT_NULL && self.targetport!=mach_task_self()) {
+        NSLog(@"[h5gg.setTargetProc] Deallocating old target port (%u)...", self.targetport);
+        mach_port_deallocate(mach_task_self(), self.targetport);
+        NSLog(@"[h5gg.setTargetProc] ✓ Old target port deallocated");
+    }
+
+    self.targetpid = 0;
+    self.targetport = MACH_PORT_NULL;
+    NSLog(@"[h5gg.setTargetProc] Clearing previous search results...");
+    [self clearResults];
+    NSLog(@"[h5gg.setTargetProc] ✓ Results cleared");
+
+    // Acquire target process task port via undetectable workaround
+    NSLog(@"[h5gg.setTargetProc] Acquiring task port for target PID %d...", pid);
+    task_port_t _target_task = task_for_pid_workaround(pid);
+
+    if(_target_task != MACH_PORT_NULL) {
+        NSLog(@"[h5gg.setTargetProc] ✓✓✓ SUCCESS! Task port acquired: %u", _target_task);
+        NSLog(@"[h5gg.setTargetProc] Setting up memory engine for target process...");
+        self.targetpid = pid;
+        self.targetport = _target_task;
+        NSLog(@"[h5gg.setTargetProc] ✓ Memory engine ready for memory read/write operations");
+        NSLog(@"[h5gg.setTargetProc] ════════════════════════════════════════════════\n");
+        return YES;
+    }
+
+    NSLog(@"[h5gg.setTargetProc] ✗ FAILED: Could not acquire task port for PID %d", pid);
+    NSLog(@"[h5gg.setTargetProc] ════════════════════════════════════════════════\n");
     return NO;
 }
 
@@ -380,54 +401,116 @@ JSExportAs(makeTweak, -(NSString*)makeTweak:(NSString*)icon with:(NSString*)html
 
 -(void)searchNumber:(NSString*)value param2:(NSString*)type param3:(NSString*)memoryFrom param4:(NSString*)memoryTo
 {
-    NSLog(@"searchNumber=%@:%@ [%@:%@]", type, value, memoryFrom, memoryTo);
-    
+    NSLog(@"\n[searchNumber] ══════════════════════════════════════════════════════");
+    NSLog(@"[searchNumber] Starting memory value search");
+    NSLog(@"[searchNumber] Value: %@, Type: %@", value, type);
+    NSLog(@"[searchNumber] Memory Range: %@ to %@", memoryFrom, memoryTo);
+
     if(!([value length] && [type length] && [memoryFrom length] && [memoryTo length])) {
+        NSLog(@"[searchNumber] ✗ Invalid parameters");
         [floatH5 alert:Localized(@"数值搜索:参数有误")];
         return;
     }
-    
-    UInt8 valuebuf[8*2];
-    
-    int jjtype = [self parseSearchValue:valuebuf from:value byType:type];
-    if(!jjtype) {
-        //[floatH5 alert:@"数值搜索:类型格式错误!"];
+
+    NSLog(@"[searchNumber] ✓ Parameters validated");
+
+    // Verify engine is initialized with task port
+    NSLog(@"[searchNumber] Engine state: port=%u, initialized=%d",
+          self.targetport, (self.engine != NULL));
+    if(self.engine == NULL || self.targetport == MACH_PORT_NULL) {
+        NSLog(@"[searchNumber] ✗ CRITICAL: Memory engine not initialized!");
+        NSLog(@"[searchNumber]   Target Port: %u (NULL=%d)",
+              self.targetport, (self.targetport == MACH_PORT_NULL));
+        [floatH5 alert:@"Memory engine not initialized. Set target process first."];
         return;
     }
-    
+
+    UInt8 valuebuf[8*2];
+
+    NSLog(@"[searchNumber] Parsing search value...");
+    int jjtype = [self parseSearchValue:valuebuf from:value byType:type];
+    if(!jjtype) {
+        NSLog(@"[searchNumber] ✗ Failed to parse value (jjtype=0)");
+        return;
+    }
+
+    NSLog(@"[searchNumber] ✓ Value parsed: jjtype=%d", jjtype);
+
     if(![memoryFrom hasPrefix:@"0x"] || ![memoryTo hasPrefix:@"0x"]) {
+        NSLog(@"[searchNumber] ✗ Invalid memory range format (missing 0x prefix)");
         [floatH5 alert:Localized(@"搜索范围需以0x开头十六进制数")];
         return;
     }
-    
+
     char* pvaluerr=NULL;
     AddrRange range = {
         strtoul([memoryFrom UTF8String], &pvaluerr, 16),
         strtoul([memoryTo UTF8String], &pvaluerr, 16)
     };
-    
+
+    NSLog(@"[searchNumber] Memory range parsed:");
+    NSLog(@"[searchNumber]   Start: 0x%llx (%llu)", (UInt64)range.start, (UInt64)range.start);
+    NSLog(@"[searchNumber]   End:   0x%llx (%llu)", (UInt64)range.end, (UInt64)range.end);
+    NSLog(@"[searchNumber]   Size:  0x%llx (%llu bytes)",
+          (UInt64)range.end - (UInt64)range.start,
+          (UInt64)range.end - (UInt64)range.start);
+
     if((pvaluerr && pvaluerr[0]) || !range.end) {
+        NSLog(@"[searchNumber] ✗ Range parse error: pvaluerr=%p", pvaluerr);
         [floatH5 alert:Localized(@"内存搜索范围格式错误")];
         return;
     }
-    
+
     if(self.firstSearchDone && self.engine->getResultsCount()==0) {
-        [floatH5 alert:Localized(@"改善搜索失败: 当前列表为空, 请清除后再重新开始搜索")];
+        NSLog(@"[searchNumber] ⚠ Previous search had 0 results, clearing...");
+        self.engine->JJClearResults();
+        self.firstSearchDone = FALSE;
+    }
+
+    NSLog(@"[searchNumber] Initiating memory scan...");
+    NSLog(@"[searchNumber]   Type: %d", jjtype);
+    NSLog(@"[searchNumber]   Search value buffer contents:");
+    NSLog(@"[searchNumber]   First 8 bytes (value): %02x %02x %02x %02x %02x %02x %02x %02x",
+          valuebuf[0], valuebuf[1], valuebuf[2], valuebuf[3],
+          valuebuf[4], valuebuf[5], valuebuf[6], valuebuf[7]);
+
+    long resultCountBefore = self.engine->getResultsCount();
+    NSLog(@"[searchNumber] Results before scan: %ld", resultCountBefore);
+
+    try {
+        NSLog(@"[searchNumber] Calling JJScanMemory...");
+        self.engine->JJScanMemory(range, valuebuf, jjtype);
+        NSLog(@"[searchNumber] ✓ JJScanMemory completed");
+
+    } catch(std::bad_alloc) {
+        NSLog(@"[searchNumber] ✗ EXCEPTION: bad_alloc (out of memory)");
+        [floatH5 alert:Localized(@"错误:内存不足!")];
+        return;
+    } catch(std::exception& e) {
+        NSLog(@"[searchNumber] ✗ EXCEPTION: %s", e.what());
+        return;
+    } catch(...) {
+        NSLog(@"[searchNumber] ✗ EXCEPTION: Unknown exception");
         return;
     }
-    
-    NSLog(@"searchNumber=%d [%p:%p] %p-%s", jjtype, range.start, range.end, pvaluerr, pvaluerr);
-    
-    try {
-        
-        self.engine->JJScanMemory(range, valuebuf, jjtype);
-        
-    } catch(std::bad_alloc) {
-        [floatH5 alert:Localized(@"错误:内存不足!")];
+
+    long resultCountAfter = self.engine->getResultsCount();
+    NSLog(@"[searchNumber] Results after scan: %ld", resultCountAfter);
+    NSLog(@"[searchNumber] New results found: %ld", resultCountAfter - resultCountBefore);
+
+    if(resultCountAfter == 0) {
+        NSLog(@"[searchNumber] ⚠⚠⚠ NO RESULTS FOUND ⚠⚠⚠");
+        NSLog(@"[searchNumber] Possible causes:");
+        NSLog(@"[searchNumber]   - Value not found in memory range");
+        NSLog(@"[searchNumber]   - Memory range is invalid/inaccessible");
+        NSLog(@"[searchNumber]   - Data type mismatch (endianness?)");
+        NSLog(@"[searchNumber]   - Task port doesn't have read permission");
     }
-    
+
     self.firstSearchDone = TRUE;
     self.lastSearchType = type;
+
+    NSLog(@"[searchNumber] ══════════════════════════════════════════════════════\n");
 }
 
 -(void)searchNearby:(NSString*)value param2:(NSString*)type param3:(NSString*)range
@@ -483,30 +566,61 @@ JSExportAs(makeTweak, -(NSString*)makeTweak:(NSString*)icon with:(NSString*)html
 
 -(NSString*)getValue:(NSString*)address param2:(NSString*)type
 {
-    NSLog(@"getValue %@ %@", address, type);
-    
-    
-    int jjtype = [self ggtype2jjtype:type];
-    if(!jjtype) {
-        //[floatH5 alert:@"读取失败:类型格式错误!"];
+    NSLog(@"\n[getValue] ════════════════════════════════════════════");
+    NSLog(@"[getValue] Reading value at address: %@, type: %@", address, type);
+
+    // Check engine state
+    if(self.engine == NULL || self.targetport == MACH_PORT_NULL) {
+        NSLog(@"[getValue] ✗ CRITICAL: Memory engine not initialized");
+        NSLog(@"[getValue]   Port: %u, Engine: %p", self.targetport, self.engine);
         return @"";
     }
-    
+
+    NSLog(@"[getValue] Engine state: port=%u, initialized=YES", self.targetport);
+
+    int jjtype = [self ggtype2jjtype:type];
+    if(!jjtype) {
+        NSLog(@"[getValue] ✗ Invalid type: %@", type);
+        return @"";
+    }
+
+    NSLog(@"[getValue] Type converted: %@ -> jjtype=%d", type, jjtype);
+
     char* pvaluerr=NULL;
     UInt64 addr = strtoul([address UTF8String], &pvaluerr, [address hasPrefix:@"0x"] ? 16 : 10);
-    
+
+    NSLog(@"[getValue] Address parsed: %@ -> 0x%llx", address, addr);
+
     if((pvaluerr && pvaluerr[0]) || !addr) {
+        NSLog(@"[getValue] ✗ Invalid address format: pvaluerr=%p", pvaluerr);
         [floatH5 alert:Localized(@"读取失败:地址格式有误!")];
         return @"";
     }
-    
-    UInt8 valuebuf[8];
-    if(!self.engine->JJReadMemory(valuebuf, addr, jjtype)) {
-        //[floatH5 alert:@"读取失败:可能地址已失效"];
+
+    UInt8 valuebuf[8] = {0};
+    NSLog(@"[getValue] Calling JJReadMemory at 0x%llx with type %d...", addr, jjtype);
+
+    BOOL readSuccess = self.engine->JJReadMemory(valuebuf, addr, jjtype);
+
+    if(!readSuccess) {
+        NSLog(@"[getValue] ✗ JJReadMemory FAILED at address 0x%llx", addr);
+        NSLog(@"[getValue] Possible causes:");
+        NSLog(@"[getValue]   - Address is not accessible in target process");
+        NSLog(@"[getValue]   - Task port doesn't have read permission");
+        NSLog(@"[getValue]   - Memory region is paged out");
         return @"";
     }
-    
-    return [self formartValue:valuebuf byType:type];
+
+    NSLog(@"[getValue] ✓ JJReadMemory succeeded");
+    NSLog(@"[getValue]   Bytes read: %02x %02x %02x %02x %02x %02x %02x %02x",
+          valuebuf[0], valuebuf[1], valuebuf[2], valuebuf[3],
+          valuebuf[4], valuebuf[5], valuebuf[6], valuebuf[7]);
+
+    NSString* result = [self formartValue:valuebuf byType:type];
+    NSLog(@"[getValue] Formatted value: %@", result);
+    NSLog(@"[getValue] ════════════════════════════════════════════\n");
+
+    return result;
 }
 
 -(BOOL)setValue:(NSString*)address param2:(NSString*)value param3:(NSString*)type
